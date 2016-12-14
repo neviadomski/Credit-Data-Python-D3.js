@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style> 
+/* Axis styling */
+.x.axis path, .y.axis path {
+	fill: none;
+	stroke: #666666;
+	stroke-width: 1.0;
+	}
+
+/* Tooltip styling 	*/
+.d3-tip {
+	line-height: 1;
+	padding: 5px;
+	background: rgba(0, 0, 0, 0.8);
+	color: #fff;
+	border-radius: 2px;
+	font-size: 12px;
+	}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+	box-sizing: border-box;
+	display: inline;
+	font-size: 10px;
+	width: 100%;
+	line-height: 1;
+	color: rgba(0, 0, 0, 0.8);
+	content: "\25BC";
+	position: absolute;
+	text-align: center;
+	}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+	margin: -1px 0 0 0;
+	top: 100%;
+	left: 0;
+	}
+</style>
+<body>
+	<script src="//d3js.org/d3.v3.min.js"></script>
+	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	<script>
+	
+	// Setting margins
+	var margin = {top: 50, right: 30, bottom: 80, left: 80},
+		width = 1800 - margin.left - margin.right,
+		height = 950 - margin.top - margin.bottom;
+
+	// Setting scales	
+	var x = d3.scale.log()
+		.range([0, width]);
+	var y = d3.scale.linear()
+		.range([height, 0]);
+	var r = d3.scale.sqrt()
+		.range([2,20]);
+	var col = d3.scale.category20();    
+
+	// Adding SVG element to body
+	var svg = d3.select("body").append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+		.append("g")
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	
+	//  Appending Title
+	var title = svg.append("text")
+        .attr("x", (width / 2))             
+        .attr("y", 0 - (margin.top / 2))
+        .attr("text-anchor", "middle")  
+        .style("font-size", 26) 
+		.style("font-weight", "semi-bold")
+        .text("APR and Debt to Income ratio relation by Occupation");
+	
+	//  Appending Subtitle	
+	var subtitle = svg.append("text")
+        .attr("x", (width / 2))             
+        .attr("y", 20 - (margin.top / 2))
+        .attr("text-anchor", "middle")  
+        .style("font-size", 18)
+        .text("by Sergei Neviadomski");
+
+	// Compute tooltip.
+	var tip = d3.tip()
+		.attr('class', 'd3-tip')
+		.offset([-10, 0])
+		.html(function(d) {
+			return "Occupation: " + d.Occupation + "<br>" + "APR: " + d3.format(".1%")(d.BorrowerAPR)+ "<br>" + "Debt To Income Ratio: " + d3.format(".1%")(d.DebtToIncomeRatio) + "<br>" + "Total debt: " + (d.LoanOriginalAmount);
+			});
+	svg.call(tip);
+
+	// Main function
+	d3.tsv("data/mydf.tsv", function(error, data) {
+		if (error) throw error;
+
+		// Coerce the data to numbers.
+		data.forEach(function(d) {
+			d.BorowerAPR = +d.BorrowerAPR;
+			d.LoanOriginalAmount = +d.LoanOriginalAmount;
+			d.DebtToIncomeRatio = +d.DebtToIncomeRatio;
+			});
+
+		// Compute the scales’ domains.
+		x.domain([0.16, 2.3]);
+		y.domain(d3.extent(data, function(d) { return d.BorrowerAPR; })).nice();
+		r.domain(d3.extent(data, function(d) { return d.LoanOriginalAmount; }));  
+  
+		// Add the x-axis.
+		svg.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + height + ")")
+			.call(d3.svg.axis()
+			.scale(x)
+			.orient("bottom")
+			.tickValues([0.2, 0.25, 0.3, 0.4, 0.5, 1, 2])
+			.tickFormat(d3.format(".2")));
+
+		// Text label for the x axis
+		svg.append("text")      
+			.attr("text-anchor", "middle")  
+			.attr("transform", "translate("+(width/2 + margin.left)+","+(height + margin.top + 10)+")") 
+			.attr("font-size", 24)
+			.text("Debt to income ratio");  
+
+		// Add the y-axis.
+		svg.append("g")
+			.attr("class", "y axis")
+			.call(d3.svg.axis()
+			.scale(y)
+			.orient("left"));
+  
+		// Text label for the y axis
+		svg.append("text")
+            .attr("text-anchor", "middle")  
+            .attr("transform", "translate("+(0 - margin.left/2 - 10)+","+(height/2)+")rotate(-90)") 
+            .attr("font-size", 24)            
+            .text("APR");  
+  
+		// Adding the points!
+		svg.selectAll(".point")
+			.data(data)
+			.enter().append("circle")
+			.attr("class", "point")
+			.attr("fill", function(d) { return col(d.Occupation); })
+			.attr("r", function(d) { return r(d.LoanOriginalAmount); })
+			.attr("cx", function(d) { return x(d.DebtToIncomeRatio); })
+			.attr("cy", function(d) { return y(d.BorrowerAPR); })
+			.attr("stroke", "gray")
+			.attr("opacity", 0.7)
+			.attr("stroke-width", 1.0)
+			.on('mouseover', tip.show)
+			.on('mouseout', tip.hide);
+		});
+
+	</script>
+</body>
