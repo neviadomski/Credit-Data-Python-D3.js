@@ -40,17 +40,17 @@
 </style>
 <body>
 	<script src="//d3js.org/d3.v3.min.js"></script>
-	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>	
 	<script>
 	
 	// Setting margins
-	var margin = {top: 50, right: 30, bottom: 80, left: 80},
+	var margin = {top: 50, right: 30, bottom: 80, left: 80, legend: 250},
 		width = 1800 - margin.left - margin.right,
-		height = 950 - margin.top - margin.bottom;
+		height = 950 - margin.top - margin.bottom;		
 
 	// Setting scales	
 	var x = d3.scale.log()
-		.range([0, width]);
+		.range([0, width - margin.legend]);
 	var y = d3.scale.linear()
 		.range([height, 0]);
 	var r = d3.scale.sqrt()
@@ -89,9 +89,9 @@
 			return "Occupation: " + d.Occupation + "<br>" + "APR: " + d3.format(".1%")(d.BorrowerAPR)+ "<br>" + "Debt To Income Ratio: " + d3.format(".1%")(d.DebtToIncomeRatio) + "<br>" + "Total debt: " + (d.LoanOriginalAmount);
 			});
 	svg.call(tip);
-
+		
 	// Main function
-	d3.tsv("data/mydf.tsv", function(error, data) {
+	d3.tsv("Data/mydf.tsv", function(error, data) {
 		if (error) throw error;
 
 		// Coerce the data to numbers.
@@ -149,8 +149,36 @@
 			.attr("stroke", "gray")
 			.attr("opacity", 0.7)
 			.attr("stroke-width", 1.0)
-			.on('mouseover', tip.show)
-			.on('mouseout', tip.hide);
+			.attr("id", function(d) { return d.Occupation;})
+			.on('mouseover', function(d) {tip.show(d, document.getElementById(d.Occupation))})
+			.on('mouseout', function(d) {tip.hide(d, document.getElementById(d.Occupation))});
+				
+		// draw legend
+		var legend = svg.selectAll(".legend")
+			.data(data)
+			.enter()
+			.append("g")
+			.attr("class", "legend")
+			.attr("transform", function(d, i) { return "translate(0," + i * 13 + ")"; })
+			.on('mouseover', function(d) {tip.show(d, document.getElementById(d.Occupation))})
+			.on('mouseout', function(d) {tip.hide(d, document.getElementById(d.Occupation))});
+				
+		// draw legend colored rectangles
+		legend.append("circle")
+			.attr("cx", margin.left + width - margin.legend)
+			.attr("r", 4)
+			.attr("opacity", 0.7)
+			.style("fill", function(d) { return col(d.Occupation); });
+
+		// draw legend text
+		legend.append("text")
+			.attr("x", margin.left + width - margin.legend + 15)
+			.attr("dy", ".35em")
+			.attr("font-size", "12")			
+			.style("text-anchor", "start")
+			.text(function(d) { return d.Occupation;})
+		
+		
 		});
 
 	</script>
